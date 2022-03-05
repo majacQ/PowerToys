@@ -235,6 +235,11 @@ namespace ImageResizer.Extensions
 
             void GetMetadataRecursively(BitmapMetadata metadata, string query)
             {
+                if (metadata == null)
+                {
+                    return;
+                }
+
                 foreach (string relativeQuery in metadata)
                 {
                     string absolutePath = query + relativeQuery;

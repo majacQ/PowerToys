@@ -9,6 +9,8 @@ trigger:
       - doc/*
       - temp/*
       - tools/*
+  paths-ignore:
+        - "*.md"
 
 pr:
   branches:

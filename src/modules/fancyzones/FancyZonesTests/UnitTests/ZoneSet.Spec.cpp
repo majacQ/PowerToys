@@ -1,6 +1,7 @@
 #include "pch.h"
-#include "FancyZonesLib\FancyZonesData.h"
+#include <FancyZonesLib/FancyZonesData/LayoutDefaults.h>
 #include "FancyZonesLib\FancyZonesDataTypes.h"
+#include "FancyZonesLib\ZoneIndexSetBitmask.h"
 #include "FancyZonesLib\JsonHelpers.h"
 #include "FancyZonesLib\VirtualDesktop.h"
 #include "FancyZonesLib\ZoneSet.h"
@@ -1000,7 +1001,7 @@ namespace FancyZonesUnitTests
                 {
                     const std::wstring uuid = L"uuid";
                     const CanvasLayoutInfo info{ -1, 100, { CanvasLayoutInfo::Rect{ -10, -10, 100, 100 }, CanvasLayoutInfo::Rect{ 50, 50, 150, 150 } } };
-                    JSONHelpers::CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Canvas, info } };
+                    JSONHelpers::CustomZoneSetJSON expected{ uuid, CustomLayoutData{ L"name", CustomLayoutType::Canvas, info } };
                     json::to_file(m_path, JSONHelpers::CustomZoneSetJSON::ToJson(expected));
                     Assert::IsTrue(std::filesystem::exists(m_path));
 
@@ -1026,7 +1027,7 @@ namespace FancyZonesUnitTests
                         .rowsPercents = { -100 }, //rows percents are negative
                         .columnsPercents = { 2500, 2500 }, //column percents count is invalid
                         .cellChildMap = { { 0, 1, 2 } } }));
-                    JSONHelpers::CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
+                    JSONHelpers::CustomZoneSetJSON expected{ uuid, CustomLayoutData{ L"name", CustomLayoutType::Grid, grid } };
                     json::to_file(m_path, JSONHelpers::CustomZoneSetJSON::ToJson(expected));
                     Assert::IsTrue(std::filesystem::exists(m_path));
 
@@ -1040,62 +1041,6 @@ namespace FancyZonesUnitTests
                     {
                         auto result = set->CalculateZones(monitorInfo.rcWork, zoneCount, spacing);
                         Assert::IsFalse(result);
-                    }
-                }
-
-                TEST_METHOD (CustomZoneFromValidCanvasLayoutInfo)
-                {
-                    //prepare device data
-                    FancyZonesDataInstance().SetDeviceInfo(FancyZonesDataTypes::DeviceIdData{ L"default_device_id" }, DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 });
-
-                    //prepare expected data
-                    wil::unique_cotaskmem_string uuid;
-                    Assert::AreEqual(S_OK, StringFromCLSID(m_id, &uuid));
-                    const CanvasLayoutInfo info{ 123, 321, { CanvasLayoutInfo::Rect{ 0, 0, 100, 100 }, CanvasLayoutInfo::Rect{ 50, 50, 150, 150 } } };
-                    CustomZoneSetData zoneSetData{ L"name", CustomLayoutType::Canvas, info };
-                    FancyZonesDataInstance().SetCustomZonesets(uuid.get(), zoneSetData);
-                    
-                    //test
-                    const int spacing = 10;
-                    const int zoneCount = static_cast<int>(info.zones.size());
-                    ZoneSetConfig m_config = ZoneSetConfig(m_id, ZoneSetLayoutType::Custom, m_monitor, DefaultValues::SensitivityRadius);
-                    for (const auto& monitorInfo : m_popularMonitors)
-                    {
-                        auto set = MakeZoneSet(m_config);
-                        auto result = set->CalculateZones(monitorInfo.rcWork, zoneCount, spacing);
-                        Assert::IsTrue(result);
-                        checkZones(set, ZoneSetLayoutType::Custom, zoneCount, monitorInfo);
-                    }
-                }
-
-                TEST_METHOD (CustomZoneFromValidGridFullLayoutInfo)
-                {
-                    //prepare device data
-                    FancyZonesDataInstance().SetDeviceInfo(FancyZonesDataTypes::DeviceIdData{ L"default_device_id" }, DeviceInfoData{ ZoneSetData{ L"uuid", ZoneSetLayoutType::Custom }, true, 16, 3 });
-
-                    //prepare expected data
-                    wil::unique_cotaskmem_string uuid;
-                    Assert::AreEqual(S_OK, StringFromCLSID(m_id, &uuid));
-                    const GridLayoutInfo grid(GridLayoutInfo(GridLayoutInfo::Full{
-                        .rows = 1,
-                        .columns = 3,
-                        .rowsPercents = { 10000 },
-                        .columnsPercents = { 2500, 5000, 2500 },
-                        .cellChildMap = { { 0, 1, 2 } } }));
-                    CustomZoneSetData zoneSetData{ L"name", CustomLayoutType::Grid, grid };
-                    FancyZonesDataInstance().SetCustomZonesets(uuid.get(), zoneSetData);
-
-                    const int spacing = 10;
-                    const int zoneCount = grid.rows() * grid.columns();
-
-                    ZoneSetConfig m_config = ZoneSetConfig(m_id, ZoneSetLayoutType::Custom, m_monitor, DefaultValues::SensitivityRadius);
-
-                    for (const auto& monitorInfo : m_popularMonitors)
-                    {
-                        auto set = MakeZoneSet(m_config);
-                        auto result = set->CalculateZones(monitorInfo.rcWork, zoneCount, spacing);
-                        Assert::IsTrue(result);
-                        checkZones(set, ZoneSetLayoutType::Custom, zoneCount, monitorInfo);
                     }
                 }
 
@@ -1105,7 +1050,7 @@ namespace FancyZonesUnitTests
                     const GridLayoutInfo grid(GridLayoutInfo(GridLayoutInfo::Minimal{
                         .rows = 1,
                         .columns = 3 }));
-                    JSONHelpers::CustomZoneSetJSON expected{ uuid, CustomZoneSetData{ L"name", CustomLayoutType::Grid, grid } };
+                    JSONHelpers::CustomZoneSetJSON expected{ uuid, CustomLayoutData{ L"name", CustomLayoutType::Grid, grid } };
                     json::to_file(m_path, JSONHelpers::CustomZoneSetJSON::ToJson(expected));
                     Assert::IsTrue(std::filesystem::exists(m_path));
 
@@ -1121,5 +1066,71 @@ namespace FancyZonesUnitTests
                         Assert::IsFalse(result);
                     }
                 }
+    };
+
+    TEST_CLASS(ZoneIndexSetUnitTests)
+    {
+        TEST_METHOD (BitmaskFromIndexSetTest)
+        {
+            // prepare
+            ZoneIndexSet set {0, 64};
+            
+            // test
+            ZoneIndexSetBitmask bitmask = ZoneIndexSetBitmask::FromIndexSet(set);
+            Assert::AreEqual(static_cast<uint64_t>(1), bitmask.part1);
+            Assert::AreEqual(static_cast<uint64_t>(1), bitmask.part2);
+        }
+
+        TEST_METHOD(BitmaskToIndexSet)
+        {
+            // prepare
+            ZoneIndexSetBitmask bitmask{
+                .part1 = 1,
+                .part2 = 1,
+            };
+
+            // test
+            ZoneIndexSet set = bitmask.ToIndexSet();
+            Assert::AreEqual(static_cast<size_t>(2), set.size());
+            Assert::AreEqual(static_cast<ZoneIndex>(0), set[0]);
+            Assert::AreEqual(static_cast<ZoneIndex>(64), set[1]);
+        }
+
+        TEST_METHOD (BitmaskConvertTest)
+        {
+            // prepare
+            ZoneIndexSet set{ 53, 54, 55, 65, 66, 67 };
+            
+            ZoneIndexSetBitmask bitmask = ZoneIndexSetBitmask::FromIndexSet(set);
+
+            // test
+            ZoneIndexSet actual = bitmask.ToIndexSet();
+            Assert::AreEqual(set.size(), actual.size());
+            for (int i = 0; i < set.size(); i++)
+            {
+                Assert::AreEqual(set[i], actual[i]);
+            }
+        }
+
+        TEST_METHOD (BitmaskConvert2Test)
+        {
+            // prepare
+            ZoneIndexSet set;
+            for (int i = 0; i < 128; i++)
+            {
+                set.push_back(i);
+            }
+
+            ZoneIndexSetBitmask bitmask = ZoneIndexSetBitmask::FromIndexSet(set);
+            
+            // test
+            ZoneIndexSet actual = bitmask.ToIndexSet();
+
+            Assert::AreEqual(set.size(), actual.size());
+            for (int i = 0; i < set.size(); i++)
+            {
+                Assert::AreEqual(set[i], actual[i]);
+            }
+        }
     };
 }

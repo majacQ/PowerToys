@@ -2,12 +2,13 @@
 
 #include "ZoneSet.h"
 
-#include "FancyZonesData.h"
+#include <FancyZonesLib/FancyZonesData/CustomLayouts.h>
 #include "FancyZonesDataTypes.h"
 #include "FancyZonesWindowProperties.h"
 #include "Settings.h"
 #include "Zone.h"
-#include "util.h"
+#include <FancyZonesLib/util.h>
+#include <FancyZonesLib/WindowUtils.h>
 
 #include <common/logger/logger.h>
 #include <common/display/dpi_aware.h>
@@ -310,12 +311,11 @@ ZoneSet::MoveWindowIntoZoneByIndexSet(HWND window, HWND workAreaWindow, const Zo
         m_windowInitialIndexSet.erase(window);
     }
 
-    auto tabSortKeyWithinZone = GetTabSortKeyWithinZone(window);
+    auto tabSortKeyWithinZone = FancyZonesWindowProperties::GetTabSortKeyWithinZone(window);
     DismissWindow(window);
 
     RECT size;
     bool sizeEmpty = true;
-    Bitmask bitmask = 0;
     auto& indexSet = m_windowIndexSet[window];
 
     for (ZoneIndex id : zoneIds)
@@ -339,24 +339,19 @@ ZoneSet::MoveWindowIntoZoneByIndexSet(HWND window, HWND workAreaWindow, const Zo
 
             indexSet.push_back(id);
         }
-
-        if (id < std::numeric_limits<ZoneIndex>::digits)
-        {
-            bitmask |= 1ull << id;
-        }
     }
 
     if (!sizeEmpty)
     {
         if (!suppressMove)
         {
-            SaveWindowSizeAndOrigin(window);
+            FancyZonesWindowUtils::SaveWindowSizeAndOrigin(window);
 
-            auto rect = AdjustRectForSizeWindowToRect(window, size, workAreaWindow);
-            SizeWindowToRect(window, rect);
+            auto rect = FancyZonesWindowUtils::AdjustRectForSizeWindowToRect(window, size, workAreaWindow);
+            FancyZonesWindowUtils::SizeWindowToRect(window, rect);
         }
 
-        StampWindow(window, bitmask);
+        FancyZonesWindowProperties::StampZoneIndexProperty(window, indexSet);
         InsertTabIntoZone(window, tabSortKeyWithinZone, indexSet);
     }
 }
@@ -577,7 +572,7 @@ void ZoneSet::DismissWindow(HWND window) noexcept
         indexSet.clear();
     }
 
-    SetTabSortKeyWithinZone(window, std::nullopt);
+    FancyZonesWindowProperties::SetTabSortKeyWithinZone(window, std::nullopt);
 }
 
 IFACEMETHODIMP_(void)
@@ -603,7 +598,7 @@ ZoneSet::CycleTabs(HWND window, bool reverse) noexcept
             continue;
         }
 
-        SwitchToWindow(next);
+        FancyZonesWindowUtils::SwitchToWindow(next);
 
         break;
     }
@@ -630,7 +625,7 @@ void ZoneSet::InsertTabIntoZone(HWND window, std::optional<size_t> tabSortKeyWit
     {
         // Insert the tab using the provided sort key
         auto predicate = [tabSortKeyWithinZone](HWND tab) {
-            auto currentTabSortKeyWithinZone = GetTabSortKeyWithinZone(tab);
+            auto currentTabSortKeyWithinZone = FancyZonesWindowProperties::GetTabSortKeyWithinZone(tab);
             if (currentTabSortKeyWithinZone.has_value())
             {
                 return currentTabSortKeyWithinZone.value() > tabSortKeyWithinZone;
@@ -651,7 +646,7 @@ void ZoneSet::InsertTabIntoZone(HWND window, std::optional<size_t> tabSortKeyWit
         if (!m_windowsByIndexSets[indexSet].empty())
         {
             auto prevTab = m_windowsByIndexSets[indexSet].back();
-            auto prevTabSortKeyWithinZone = GetTabSortKeyWithinZone(prevTab);
+            auto prevTabSortKeyWithinZone = FancyZonesWindowProperties::GetTabSortKeyWithinZone(prevTab);
             if (prevTabSortKeyWithinZone.has_value())
             {
                 tabSortKeyWithinZone = prevTabSortKeyWithinZone.value() + 1;
@@ -661,7 +656,7 @@ void ZoneSet::InsertTabIntoZone(HWND window, std::optional<size_t> tabSortKeyWit
         m_windowsByIndexSets[indexSet].push_back(window);
     }
 
-    SetTabSortKeyWithinZone(window, tabSortKeyWithinZone);
+    FancyZonesWindowProperties::SetTabSortKeyWithinZone(window, tabSortKeyWithinZone);
 }
 
 IFACEMETHODIMP_(bool)
@@ -880,52 +875,45 @@ bool ZoneSet::CalculateUniquePriorityGridLayout(Rect workArea, int zoneCount, in
 
 bool ZoneSet::CalculateCustomLayout(Rect workArea, int spacing) noexcept
 {
-    wil::unique_cotaskmem_string guidStr;
-    if (SUCCEEDED(StringFromCLSID(m_config.Id, &guidStr)))
+    const auto zoneSetSearchResult = CustomLayouts::instance().GetLayout(m_config.Id);
+    if (!zoneSetSearchResult.has_value())
     {
-        const std::wstring guid = guidStr.get();
+        return false;
+    }
 
-        const auto zoneSetSearchResult = FancyZonesDataInstance().FindCustomZoneSet(guid);
-
-        if (!zoneSetSearchResult.has_value())
+    const auto& zoneSet = *zoneSetSearchResult;
+    if (zoneSet.type == FancyZonesDataTypes::CustomLayoutType::Canvas && std::holds_alternative<FancyZonesDataTypes::CanvasLayoutInfo>(zoneSet.info))
+    {
+        const auto& zoneSetInfo = std::get<FancyZonesDataTypes::CanvasLayoutInfo>(zoneSet.info);
+        for (const auto& zone : zoneSetInfo.zones)
         {
-            return false;
-        }
+            int x = zone.x;
+            int y = zone.y;
+            int width = zone.width;
+            int height = zone.height;
 
-        const auto& zoneSet = *zoneSetSearchResult;
-        if (zoneSet.type == FancyZonesDataTypes::CustomLayoutType::Canvas && std::holds_alternative<FancyZonesDataTypes::CanvasLayoutInfo>(zoneSet.info))
-        {
-            const auto& zoneSetInfo = std::get<FancyZonesDataTypes::CanvasLayoutInfo>(zoneSet.info);
-            for (const auto& zone : zoneSetInfo.zones)
+            DPIAware::Convert(m_config.Monitor, x, y);
+            DPIAware::Convert(m_config.Monitor, width, height);
+
+            auto zone = MakeZone(RECT{ x, y, x + width, y + height }, m_zones.size());
+            if (zone)
             {
-                int x = zone.x;
-                int y = zone.y;
-                int width = zone.width;
-                int height = zone.height;
-
-                DPIAware::Convert(m_config.Monitor, x, y);
-                DPIAware::Convert(m_config.Monitor, width, height);
-
-                auto zone = MakeZone(RECT{ x, y, x + width, y + height }, m_zones.size());
-                if (zone)
-                {
-                    AddZone(zone);
-                }
-                else
-                {
-                    // All zones within zone set should be valid in order to use its functionality.
-                    m_zones.clear();
-                    return false;
-                }
+                AddZone(zone);
             }
+            else
+            {
+                // All zones within zone set should be valid in order to use its functionality.
+                m_zones.clear();
+                return false;
+            }
+        }
 
-            return true;
-        }
-        else if (zoneSet.type == FancyZonesDataTypes::CustomLayoutType::Grid && std::holds_alternative<FancyZonesDataTypes::GridLayoutInfo>(zoneSet.info))
-        {
-            const auto& info = std::get<FancyZonesDataTypes::GridLayoutInfo>(zoneSet.info);
-            return CalculateGridZones(workArea, info, spacing);
-        }
+        return true;
+    }
+    else if (zoneSet.type == FancyZonesDataTypes::CustomLayoutType::Grid && std::holds_alternative<FancyZonesDataTypes::GridLayoutInfo>(zoneSet.info))
+    {
+        const auto& info = std::get<FancyZonesDataTypes::GridLayoutInfo>(zoneSet.info);
+        return CalculateGridZones(workArea, info, spacing);
     }
 
     return false;

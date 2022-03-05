@@ -27,7 +27,10 @@ struct LogSettings
     inline const static std::wstring keyboardManagerLogPath = L"Logs\\keyboard-manager-log.txt";
     inline const static std::string findMyMouseLoggerName = "find-my-mouse";
     inline const static std::string mouseHighlighterLoggerName = "mouse-highlighter";
+    inline const static std::string mousePointerCrosshairsLoggerName = "mouse-pointer-crosshairs";
     inline const static std::string powerRenameLoggerName = "powerrename";
+    inline const static std::string alwaysOnTopLoggerName = "always-on-top";
+    inline const static std::wstring alwaysOnTopLogPath = L"always-on-top-log.txt";
     inline const static int retention = 30;
     std::wstring logLevel;
     LogSettings();

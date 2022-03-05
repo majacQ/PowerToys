@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using Wox.Plugin.Common.Win32;
 
 namespace Microsoft.Plugin.WindowWalker.Components
 {
@@ -19,11 +20,6 @@ namespace Microsoft.Plugin.WindowWalker.Components
         /// PowerLauncher main executable
         /// </summary>
         private static readonly string _powerLauncherExe = Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
-
-        /// <summary>
-        /// Delegate handler for open windows updates
-        /// </summary>
-        public delegate void OpenWindowsUpdateEventHandler(object sender, SearchController.SearchResultUpdateEventArgs e);
 
         /// <summary>
         /// List of all the open windows
@@ -76,7 +72,7 @@ namespace Microsoft.Plugin.WindowWalker.Components
         public void UpdateOpenWindowsList()
         {
             windows.Clear();
-            NativeMethods.CallBackPtr callbackptr = new NativeMethods.CallBackPtr(WindowEnumerationCallBack);
+            EnumWindowsProc callbackptr = new EnumWindowsProc(WindowEnumerationCallBack);
             _ = NativeMethods.EnumWindows(callbackptr, 0);
         }
 
@@ -93,9 +89,16 @@ namespace Microsoft.Plugin.WindowWalker.Components
 
             if (newWindow.IsWindow && newWindow.Visible && newWindow.IsOwner &&
                 (!newWindow.IsToolWindow || newWindow.IsAppWindow) && !newWindow.TaskListDeleted &&
-                newWindow.ClassName != "Windows.UI.Core.CoreWindow" && newWindow.ProcessName != _powerLauncherExe)
+                newWindow.ClassName != "Windows.UI.Core.CoreWindow" && newWindow.ProcessInfo.Name != _powerLauncherExe)
             {
+                // To hide (not add) preloaded uwp app windows that are invisible to the user we check the cloak state in DWM to be "none". (Issue #13637.)
+                // (If user asking to see these windows again we can add an optional plugin setting in the future.)
+                // [@htcfreek, 2022-02-01: Removed the IsCloaked check to list windows from virtual desktops other than the current one again (#15887). In a second PR I will fix it re-implement it with improved code again.]
+                // if (!newWindow.IsCloaked)
+                // {
                 windows.Add(newWindow);
+
+                // }
             }
 
             return true;

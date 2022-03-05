@@ -15,6 +15,12 @@
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -37,14 +43,22 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="FancyZonesData\CustomLayouts.h" />
+    <ClInclude Include="FancyZonesData\AppliedLayouts.h" />
+    <ClInclude Include="FancyZonesData\AppZoneHistory.h" />
     <ClInclude Include="FancyZones.h" />
     <ClInclude Include="FancyZonesDataTypes.h" />
+    <ClInclude Include="FancyZonesData\Layout.h" />
+    <ClInclude Include="FancyZonesData\LayoutDefaults.h" />
+    <ClInclude Include="FancyZonesData\LayoutTemplates.h" />
     <ClInclude Include="FancyZonesWinHookEventIDs.h" />
     <ClInclude Include="GenericKeyHook.h" />
     <ClInclude Include="FancyZonesData.h" />
     <ClInclude Include="GuidUtils.h" />
     <ClInclude Include="JsonHelpers.h" />
     <ClInclude Include="KeyState.h" />
+    <ClInclude Include="FancyZonesData\LayoutHotkeys.h" />
+    <ClInclude Include="ModuleConstants.h" />
     <ClInclude Include="MonitorUtils.h" />
     <ClInclude Include="MonitorWorkAreaHandler.h" />
     <ClInclude Include="pch.h" />
@@ -52,23 +66,49 @@
     <None Include="resource.base.h" />
     <ClInclude Include="SecondaryMouseButtonsHook.h" />
     <ClInclude Include="Settings.h" />
+    <ClInclude Include="SettingsConstants.h" />
+    <ClInclude Include="SettingsObserver.h" />
     <ClInclude Include="trace.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="VirtualDesktop.h" />
     <ClInclude Include="WindowMoveHandler.h" />
     <ClInclude Include="FancyZonesWindowProperties.h" />
+    <ClInclude Include="WindowUtils.h" />
     <ClInclude Include="Zone.h" />
-    <ClInclude Include="ZoneColors.h" />
+    <ClInclude Include="Colors.h" />
+    <ClInclude Include="ZoneIndexSetBitmask.h" />
     <ClInclude Include="ZoneSet.h" />
     <ClInclude Include="WorkArea.h" />
     <ClInclude Include="ZonesOverlay.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Colors.cpp" />
+    <ClCompile Include="FancyZonesData\AppZoneHistory.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">../pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="FancyZonesData\CustomLayouts.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">../pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../pch.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="FancyZones.cpp" />
     <ClCompile Include="FancyZonesDataTypes.cpp" />
+    <ClCompile Include="FancyZonesData\AppliedLayouts.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">../pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="FancyZonesData\LayoutTemplates.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">../pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="FancyZonesWindowProperties.cpp" />
     <ClCompile Include="FancyZonesWinHookEventIDs.cpp" />
     <ClCompile Include="FancyZonesData.cpp" />
     <ClCompile Include="JsonHelpers.cpp" />
+    <ClCompile Include="FancyZonesData\LayoutHotkeys.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">../pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../pch.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="MonitorUtils.cpp" />
     <ClCompile Include="MonitorWorkAreaHandler.cpp" />
     <ClCompile Include="OnThreadExecutor.cpp" />
@@ -81,6 +121,7 @@
     <ClCompile Include="util.cpp" />
     <ClCompile Include="VirtualDesktop.cpp" />
     <ClCompile Include="WindowMoveHandler.cpp" />
+    <ClCompile Include="WindowUtils.cpp" />
     <ClCompile Include="Zone.cpp" />
     <ClCompile Include="ZoneSet.cpp" />
     <ClCompile Include="WorkArea.cpp" />
