@@ -2056,6 +2056,13 @@ From there, simply click on one of the supported files in the File Explorer and 
     <value>Attribution</value>
     <comment>giving credit to the projects this utility was based on</comment>
   </data>
+  <<<<<<< dev/aaron-junker/monaco-wraptext
+  <data name="FileExplorerPreview_ToggleSwitch_Wrap_Text.Content" xml:space="preserve">
+    <value>Wrap text</value>
+    <comment>Feature on or off</comment>
+  </data>
+</root>
+  =======
   <data name="FancyZones_AllowPopupWindowSnap.Description" xml:space="preserve">
     <value>This setting can affect all popup windows including notifications</value>
   </data>
@@ -2066,3 +2073,4 @@ From there, simply click on one of the supported files in the File Explorer and 
     <value>Allow child windows snapping</value>
   </data>
 </root>
+  >>>>>>> main
